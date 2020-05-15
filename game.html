@@ -36,14 +36,13 @@
                 update: update
             }
         };
-
-        function collect(player, axe) {}
         // Variables
         let neutral = false,
             player,
             dodge = false,
             game = new Phaser.Game(config),
             weapon = 'normal',
+            thrown,
             jump = 0,
             dash = 2,
             pressCheck = {
@@ -61,6 +60,7 @@
             Stand,
             Stare,
             Dash,
+            Dodge,
             KeyCodes = Phaser.Input.Keyboard.KeyCodes
 
         const SPEED = 160
@@ -69,13 +69,6 @@
             pressCheck[key] = false
             console.log('presscheck')
         }
-
-        function dodgeCall() {
-            dodge = false
-            console.log(dodge)
-        }
-
-
 
         function preload() {
             this.load.multiatlas('sheet', 'assets/scheet.json', 'assets');
@@ -183,6 +176,12 @@
                     end: 12,
                     zeroPad: 2,
                     move: 'move'
+                },
+                dodge: {
+                    start: 20,
+                    end: 22,
+                    zeroPad: 2,
+                    move: 'move'
                 }
 
             }
@@ -230,6 +229,7 @@
             Stand = weapon + '_stand'
             Stare = weapon + '_stare'
             Dash = weapon + '_dash'
+            Dodge = weapon + '_dodge'
 
             // game logic
             if (player.body.touching.right || player.body.touching.left) {
@@ -244,7 +244,6 @@
                 window.setTimeout(function() {
                     pressCall('heavy')
                 }, 2600)
-                console.log('heavy')
                 if (!cursors.left.isDown && !cursors.right.isDown) {
                     player.setVelocityX(0)
                 }
@@ -254,21 +253,22 @@
                 window.setTimeout(function() {
                     pressCall('attack')
                 }, 2600)
-                console.log('attack')
                 if (!cursors.left.isDown && !cursors.right.isDown) {
                     player.setVelocityX(0)
                 }
                 pressCheck.attack = true
                 player.anims.play(Attack, true)
+            } else if (cursors.x.isDown && weapon != 'normal') {
+                thrown = weapon
+                weapon = 'neutral'
             }
-            if (pressCheck.attack || pressCheck.heavy || pressCheck.dodge) {
+            if (pressCheck.attack || pressCheck.heavy || pressCheck.dash) {
                 console.log(pressCheck)
             }
             /**            MOVE                **/
             else if (cursors.left.isDown) {
                 if (player.flipX == true) {
                     player.anims.play(Stare, true)
-                    console.log('flip')
                 }
                 player.setFlipX(false)
                 if (player.body.touching.down) {
@@ -280,7 +280,6 @@
             } else if (cursors.right.isDown) {
                 if (player.flipX == false) {
                     player.setFlipX(true)
-                    console.log('flip')
                 }
                 if (player.body.touching.down) {
                     player.anims.play(Move, true);
@@ -314,12 +313,11 @@
 
             /**                               DASH                             **/
             if (dash !== 0 && cursors.z.isDown && pressCheck.dash == false) {
-                pressCheck.dodge = true
+                pressCheck.dash = true
                 window.setTimeout(function() {
-                    pressCall('dodge')
+                    pressCall('dash')
                 }, 1000)
                 dash--
-                pressCheck.dash = true
                 if (player.body.touching.down) {
                     if (cursors.left.isDown) {
                         player.anims.play(Dash, true)
@@ -338,10 +336,14 @@
                             player.setVelocityX(SPEED)
                         }
                     } else if (cursors.up.isDown) {
+                        player.anims.play(Dash, true)
                         player.setVelocityY(-2 * SPEED)
                     } else {
                         dodge = true
-                        window.setTimeout(dodgeCall, 1000)
+                        player.anims.play(Dodge, true)
+                        window.setTimeout(function() {
+                            pressCall('dodge')
+                        }, 250)
                         for (i = 0; i < 9000; i++) {
                             player.setVelocityX(0)
                             player.setVelocityY(0)
@@ -362,11 +364,14 @@
                             player.setVelocityY(SPEED)
                         }
                     } else if (neutral == true) {
+                        dodge = true
+                        player.anims.play(Dodge, true)
+                        window.setTimeout(function() {
+                            pressCall('dodge')
+                        }, 250)
                         for (i = 0; i < 2000; i++) {
-                            dodge = true
                             player.setVelocityY(0)
                             player.setVelocityX(0)
-                            player.anims.play('', true)
                         }
                         neutral = false
                     }
@@ -378,9 +383,6 @@
             /**         Press Check     **/
             if (!cursors.space.isDown) {
                 pressCheck.jump = false
-            }
-            if (!cursors.z.isDown) {
-                pressCheck.dash = false
             }
         }
     </script>
