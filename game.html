@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Knight Fight</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+    <script>
+    </script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <script type="text/javascript">
+        var config = {
+            type: Phaser.AUTO,
+            width: 1920,
+            height: 1089,
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: {
+                        y: 300
+                    },
+                    debug: false
+                },
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        function collect(player, axe) {}
+        // Variables
+        let neutral = false,
+            player,
+            dodge = false,
+            game = new Phaser.Game(config),
+            weapon = 'normal',
+            jump = 0,
+            dash = 2,
+            pressCheck = {
+                jump: true,
+                dash: false,
+                dodge: false,
+                heavy: false,
+                attack: false,
+            },
+            cursors,
+            Fly,
+            Attack,
+            Move,
+            Heavy,
+            Stand,
+            Stare,
+            Dash,
+            KeyCodes = Phaser.Input.Keyboard.KeyCodes
+
+        const SPEED = 160
+
+        function pressCall(key) {
+            pressCheck[key] = false
+            console.log('presscheck')
+        }
+
+        function dodgeCall() {
+            dodge = false
+            console.log(dodge)
+        }
+
+
+
+        function preload() {
+            this.load.multiatlas('sheet', 'assets/scheet.json', 'assets');
+        }
+
+        function create() {
+            // Stuff
+            this.add.image(0, 0, 'sheet', 'map/background.jpg');
+            let platform = this.physics.add.staticGroup(),
+                axe = this.physics.add.group({
+                    key: 'sheet',
+                    frame: 'throw/axe/axe.png',
+                    repeat: 4,
+                    setXY: {
+                        x: 400,
+                        y: 100,
+                        stepX: 400
+                    }
+                })
+            axe.children.iterate(function(child) {
+                child.setBounceY(0.6)
+            })
+            let sword = this.physics.add.group({
+                key: 'sheet',
+                frame: 'throw/sword/sword.png',
+                repeat: 4,
+                setXY: {
+                    x: 200,
+                    y: 100,
+                    stepX: 400
+                }
+            });
+
+            sword.children.iterate(function(child) {
+                child.setBounceY(0.6)
+            })
+            player = this.physics.add.sprite(400, 400, 'sheet', 'normal/move/5.png');
+            // Pysics
+            function collectAxe(player, axe) {
+                if (cursors.x.isDown) {
+                    weapon = 'axe'
+                    console.log(weapon)
+                    axe.disableBody(true, true)
+                }
+            }
+
+            function collectSword(player, sword) {
+                if (cursors.x.isDown) {
+                    weapon = 'sword'
+                    console.log(weapon)
+                    sword.disableBody(true, true)
+                }
+            }
+            this.physics.add.overlap(player, axe, collectAxe, null, this)
+            this.physics.add.overlap(player, sword, collectSword, null, this)
+            player.setBounce(0.2);
+            player.setCollideWorldBounds(true);
+            this.physics.add.collider(player, platform)
+            this.physics.add.collider(axe, platform)
+            this.physics.add.collider(sword, platform)
+                // Create
+            platform.create(0, 888, 'sheet', 'map/Ground.png')
+                /**                 ANIMS            **/
+            let weaponKeys = ["sword", "axe", "normal"];
+
+            let movesConfigs = {
+                attack: {
+                    start: 1,
+                    end: 29,
+                    zeroPad: 2,
+                    move: "attack"
+                },
+                heavy: {
+                    start: 1,
+                    end: 26,
+                    zeroPad: 2,
+                    move: "heavy"
+                },
+                move: {
+                    start: 1,
+                    end: 4,
+                    zeroPad: 0,
+                    move: "move"
+                },
+                stand: {
+                    start: 4,
+                    end: 4,
+                    zeroPad: 0,
+                    move: 'move'
+                },
+                flying: {
+                    start: 4,
+                    end: 4,
+                    zeroPad: 2,
+                    move: 'heavy'
+                },
+                stare: {
+                    start: 5,
+                    end: 5,
+                    zeroPad: 0,
+                    move: 'move'
+                },
+                dash: {
+                    start: 10,
+                    end: 12,
+                    zeroPad: 2,
+                    move: 'move'
+                }
+
+            }
+            let animas = {};
+            for (let weaponKey of weaponKeys) {
+                animas[weaponKey] = {};
+                for (let moveKey in movesConfigs) {
+                    let moveConfig = movesConfigs[moveKey];
+
+                    const frames = this.anims.generateFrameNames('sheet', {
+                        start: moveConfig.start,
+                        end: moveConfig.end,
+                        zeroPad: moveConfig.zeroPad,
+                        prefix: `${weaponKey}/${moveConfig.move}/`,
+                        suffix: '.png'
+                    });
+                    animas[weaponKey][moveKey] = this.anims.create({
+                        key: weaponKey + "_" + moveKey,
+                        frames: frames,
+                        frameRate: 10,
+                    });
+                }
+            }
+            console.log("anims", animas);
+        }
+
+        function update() {
+            // uppdating variables
+            cursors = this.input.keyboard.addKeys({
+                up: KeyCodes.UP,
+                down: KeyCodes.DOWN,
+                left: KeyCodes.LEFT,
+                right: KeyCodes.RIGHT,
+                space: KeyCodes.SPACE,
+                shift: KeyCodes.SHIFT,
+                z: KeyCodes.Z,
+                x: KeyCodes.X,
+                c: KeyCodes.C,
+                v: KeyCodes.V
+            })
+            Fly = weapon + '_flying'
+            Attack = weapon + '_attack'
+            Heavy = weapon + '_heavy'
+            Move = weapon + '_move'
+            Stand = weapon + '_stand'
+            Stare = weapon + '_stare'
+            Dash = weapon + '_dash'
+
+            // game logic
+            if (player.body.touching.right || player.body.touching.left) {
+                jump = 4
+            } else if (player.body.touching.down) {
+                dash = 4
+                jump = 4
+            }
+            /**               ATTACK            **/
+
+            if (cursors.c.isDown && pressCheck.heavy == false) {
+                window.setTimeout(function() {
+                    pressCall('heavy')
+                }, 2600)
+                console.log('heavy')
+                if (!cursors.left.isDown && !cursors.right.isDown) {
+                    player.setVelocityX(0)
+                }
+                pressCheck.heavy = true
+                player.anims.play(Heavy, true)
+            } else if (cursors.v.isDown && pressCheck.attack == false) {
+                window.setTimeout(function() {
+                    pressCall('attack')
+                }, 2600)
+                console.log('attack')
+                if (!cursors.left.isDown && !cursors.right.isDown) {
+                    player.setVelocityX(0)
+                }
+                pressCheck.attack = true
+                player.anims.play(Attack, true)
+            }
+            if (pressCheck.attack || pressCheck.heavy || pressCheck.dodge) {
+                console.log(pressCheck)
+            }
+            /**            MOVE                **/
+            else if (cursors.left.isDown) {
+                if (player.flipX == true) {
+                    player.anims.play(Stare, true)
+                    console.log('flip')
+                }
+                player.setFlipX(false)
+                if (player.body.touching.down) {
+                    player.anims.play(Move, true);
+                    player.setVelocityX(-SPEED);
+                } else {
+                    player.anims.play(Fly, true)
+                }
+            } else if (cursors.right.isDown) {
+                if (player.flipX == false) {
+                    player.setFlipX(true)
+                    console.log('flip')
+                }
+                if (player.body.touching.down) {
+                    player.anims.play(Move, true);
+                    player.setVelocityX(SPEED);
+                } else {
+                    player.anims.play(Fly, true)
+                }
+            } else if (player.body.touching.left) {
+                player.setFlipX(false)
+                player.anims.play(Move, true)
+            } else if (player.body.touching.right) {
+                player.anims.play(Move, true)
+                player.setFlipX(true)
+            } else if (player.body.touching.down) {
+                player.setVelocityX(0);
+                player.anims.play(Stare, true)
+
+            }
+            /**                         JUMP                    **/
+            if (jump !== 0 && cursors.space.isDown && pressCheck.jump == false) {
+                player.setVelocityY(-330);
+                jump--
+                pressCheck.jump = true
+                if (cursors.left.isDown) {
+                    player.setVelocityX(-SPEED)
+                }
+                if (cursors.right.isDown) {
+                    player.setVelocityX(SPEED)
+                }
+            }
+
+            /**                               DASH                             **/
+            if (dash !== 0 && cursors.z.isDown && pressCheck.dash == false) {
+                pressCheck.dodge = true
+                window.setTimeout(function() {
+                    pressCall('dodge')
+                }, 1000)
+                dash--
+                pressCheck.dash = true
+                if (player.body.touching.down) {
+                    if (cursors.left.isDown) {
+                        player.anims.play(Dash, true)
+                        player.setVelocityY(-SPEED)
+                        player.setVelocityX(-400)
+                        if (cursors.up.isDown) {
+                            player.setVelocityY(-1.5 * SPEED)
+                            player.setVelocityX(-SPEED)
+                        }
+                    } else if (cursors.right.isDown) {
+                        player.anims.play(Dash, true)
+                        player.setVelocityY(-SPEED)
+                        player.setVelocityX(400)
+                        if (cursors.up.isDown) {
+                            player.setVelocityY(-1.5 * SPEED)
+                            player.setVelocityX(SPEED)
+                        }
+                    } else if (cursors.up.isDown) {
+                        player.setVelocityY(-2 * SPEED)
+                    } else {
+                        dodge = true
+                        window.setTimeout(dodgeCall, 1000)
+                        for (i = 0; i < 9000; i++) {
+                            player.setVelocityX(0)
+                            player.setVelocityY(0)
+                        }
+                    }
+                } else {
+                    if (cursors.left.isDown) {
+                        player.setVelocityX(-SPEED)
+                    } else if (cursors.right.isDown) {
+                        player.setVelocityX(SPEED)
+                    } else {
+                        neutral = true
+                    }
+                    if (cursors.up.isDown) {
+                        player.setVelocityY(-SPEED)
+                    } else if (cursors.down.isDown) {
+                        for (i = 0; i < 20000; i++) {
+                            player.setVelocityY(SPEED)
+                        }
+                    } else if (neutral == true) {
+                        for (i = 0; i < 2000; i++) {
+                            dodge = true
+                            player.setVelocityY(0)
+                            player.setVelocityX(0)
+                            player.anims.play('', true)
+                        }
+                        neutral = false
+                    }
+                }
+
+            }
+            /**         WALLS        **/
+
+            /**         Press Check     **/
+            if (!cursors.space.isDown) {
+                pressCheck.jump = false
+            }
+            if (!cursors.z.isDown) {
+                pressCheck.dash = false
+            }
+        }
+    </script>
+
+</body>
+
+</html>
