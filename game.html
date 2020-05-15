@@ -43,98 +43,18 @@
             game = new Phaser.Game(config),
             weapon = 'normal',
             thrown,
+            throwWeapon,
             jump = 0,
             dash = 2,
             pressCheck = {
                 jump: true,
                 dash: false,
-                dodge: false,
                 heavy: false,
                 attack: false,
+                throw: false
             },
             cursors,
-            Fly,
-            Attack,
-            Move,
-            Heavy,
-            Stand,
-            Stare,
-            Dash,
-            Dodge,
-            KeyCodes = Phaser.Input.Keyboard.KeyCodes
-
-        const SPEED = 160
-
-        function pressCall(key) {
-            pressCheck[key] = false
-            console.log('presscheck')
-        }
-
-        function preload() {
-            this.load.multiatlas('sheet', 'assets/scheet.json', 'assets');
-        }
-
-        function create() {
-            // Stuff
-            this.add.image(0, 0, 'sheet', 'map/background.jpg');
-            let platform = this.physics.add.staticGroup(),
-                axe = this.physics.add.group({
-                    key: 'sheet',
-                    frame: 'throw/axe/axe.png',
-                    repeat: 4,
-                    setXY: {
-                        x: 400,
-                        y: 100,
-                        stepX: 400
-                    }
-                })
-            axe.children.iterate(function(child) {
-                child.setBounceY(0.6)
-            })
-            let sword = this.physics.add.group({
-                key: 'sheet',
-                frame: 'throw/sword/sword.png',
-                repeat: 4,
-                setXY: {
-                    x: 200,
-                    y: 100,
-                    stepX: 400
-                }
-            });
-
-            sword.children.iterate(function(child) {
-                child.setBounceY(0.6)
-            })
-            player = this.physics.add.sprite(400, 400, 'sheet', 'normal/move/5.png');
-            // Pysics
-            function collectAxe(player, axe) {
-                if (cursors.x.isDown) {
-                    weapon = 'axe'
-                    console.log(weapon)
-                    axe.disableBody(true, true)
-                }
-            }
-
-            function collectSword(player, sword) {
-                if (cursors.x.isDown) {
-                    weapon = 'sword'
-                    console.log(weapon)
-                    sword.disableBody(true, true)
-                }
-            }
-            this.physics.add.overlap(player, axe, collectAxe, null, this)
-            this.physics.add.overlap(player, sword, collectSword, null, this)
-            player.setBounce(0.2);
-            player.setCollideWorldBounds(true);
-            this.physics.add.collider(player, platform)
-            this.physics.add.collider(axe, platform)
-            this.physics.add.collider(sword, platform)
-                // Create
-            platform.create(0, 888, 'sheet', 'map/Ground.png')
-                /**                 ANIMS            **/
-            let weaponKeys = ["sword", "axe", "normal"];
-
-            let movesConfigs = {
+            movesConfigs = {
                 attack: {
                     start: 1,
                     end: 29,
@@ -153,18 +73,6 @@
                     zeroPad: 0,
                     move: "move"
                 },
-                stand: {
-                    start: 4,
-                    end: 4,
-                    zeroPad: 0,
-                    move: 'move'
-                },
-                flying: {
-                    start: 4,
-                    end: 4,
-                    zeroPad: 2,
-                    move: 'heavy'
-                },
                 stare: {
                     start: 5,
                     end: 5,
@@ -182,15 +90,93 @@
                     end: 22,
                     zeroPad: 2,
                     move: 'move'
+                },
+                flying: {
+                    start: 12,
+                    end: 12,
+                    zeroPad: 2,
+                    move: 'move'
                 }
+            },
+            playAnims = {},
+            KeyCodes = Phaser.Input.Keyboard.KeyCodes;
 
+        for (let key in movesConfigs) {
+            playAnims[key] = function() {
+                player.anims.play(weapon + '_' + key, true);
+            };
+        }
+        console.log(playAnims);
+
+        const SPEED = 160
+
+        function pressCall(key) {
+            pressCheck[key] = false
+            console.log('presscheck')
+        }
+
+        function preload() {
+            this.load.multiatlas('sheet', 'assets/scheet.json', 'assets');
+        }
+
+        function create() {
+            // Stuff
+            this.add.image(0, 0, 'sheet', 'map/background.jpg');
+            platform = this.physics.add.staticGroup(),
+                axe = this.physics.add.group({
+                    defaultKey: 'sheet',
+                    defaultFrame: 'throw/axe/axe.png',
+                });
+            sword = this.physics.add.group({
+                defaultKey: 'sheet',
+                defaultFrame: 'throw/sword/sword.png',
+            });
+            player = this.physics.add.sprite(400, 400, 'sheet', 'normal/move/5.png');
+            throwWeapon = this.physics.add.group({
+                defaultKey: 'sheet',
+                defaultFrame: 'throw/weapon/1.png',
+            });
+            // Pysics
+            function collectAxe(player, axe) {
+                if (cursors.x.isDown) {
+                    weapon = 'axe'
+                    console.log(weapon)
+                    axe.disableBody(true, true)
+                    pressCheck.throw = true
+                }
             }
+
+            function collectSword(player, sword) {
+                if (cursors.x.isDown) {
+                    weapon = 'sword'
+                    console.log(weapon)
+                    sword.disableBody(true, true)
+                    pressCheck.throw = true
+                }
+            }
+            this.physics.add.overlap(player, axe, collectAxe, null, this)
+            this.physics.add.overlap(player, sword, collectSword, null, this)
+            player.setBounce(0.2);
+            player.setCollideWorldBounds(true);
+            this.physics.add.collider(player, platform)
+            this.physics.add.collider(throwWeapon, Phaser.Physics.Arcade.World)
+            this.physics.add.collider(player, throwWeapon)
+            this.physics.add.collider(axe, platform)
+            this.physics.add.collider(sword, platform)
+            this.physics.add.collider(throwWeapon, platform)
+                // Create
+            for (i = 1; i < 5; i++) {
+                axe.create(i * 400, 200)
+                sword.create(-200 + i * 400, 200)
+            }
+            platform.create(0, 888, 'sheet', 'map/Ground.png')
+                /**                 ANIMS            **/
+            let weaponKeys = ["sword", "axe", "normal"];
             let animas = {};
             for (let weaponKey of weaponKeys) {
                 animas[weaponKey] = {};
                 for (let moveKey in movesConfigs) {
                     let moveConfig = movesConfigs[moveKey];
-
                     const frames = this.anims.generateFrameNames('sheet', {
                         start: moveConfig.start,
                         end: moveConfig.end,
@@ -211,27 +197,18 @@
         function update() {
             // uppdating variables
             cursors = this.input.keyboard.addKeys({
-                up: KeyCodes.UP,
-                down: KeyCodes.DOWN,
-                left: KeyCodes.LEFT,
-                right: KeyCodes.RIGHT,
-                space: KeyCodes.SPACE,
-                shift: KeyCodes.SHIFT,
-                z: KeyCodes.Z,
-                x: KeyCodes.X,
-                c: KeyCodes.C,
-                v: KeyCodes.V
-            })
-            Fly = weapon + '_flying'
-            Attack = weapon + '_attack'
-            Heavy = weapon + '_heavy'
-            Move = weapon + '_move'
-            Stand = weapon + '_stand'
-            Stare = weapon + '_stare'
-            Dash = weapon + '_dash'
-            Dodge = weapon + '_dodge'
-
-            // game logic
+                    up: KeyCodes.UP,
+                    down: KeyCodes.DOWN,
+                    left: KeyCodes.LEFT,
+                    right: KeyCodes.RIGHT,
+                    space: KeyCodes.SPACE,
+                    shift: KeyCodes.SHIFT,
+                    z: KeyCodes.Z,
+                    x: KeyCodes.X,
+                    c: KeyCodes.C,
+                    v: KeyCodes.V
+                })
+                // game logic
             if (player.body.touching.right || player.body.touching.left) {
                 jump = 4
             } else if (player.body.touching.down) {
@@ -239,7 +216,6 @@
                 jump = 4
             }
             /**               ATTACK            **/
-
             if (cursors.c.isDown && pressCheck.heavy == false) {
                 window.setTimeout(function() {
                     pressCall('heavy')
@@ -247,8 +223,8 @@
                 if (!cursors.left.isDown && !cursors.right.isDown) {
                     player.setVelocityX(0)
                 }
-                pressCheck.heavy = true
-                player.anims.play(Heavy, true)
+                pressCheck.heavy = true;
+                playAnims.heavy();
             } else if (cursors.v.isDown && pressCheck.attack == false) {
                 window.setTimeout(function() {
                     pressCall('attack')
@@ -257,50 +233,54 @@
                     player.setVelocityX(0)
                 }
                 pressCheck.attack = true
-                player.anims.play(Attack, true)
-            } else if (cursors.x.isDown && weapon != 'normal') {
+                playAnims.attack();
+            } else if (cursors.x.isDown && weapon != 'normal' && pressCheck.throw == false) {
+                throwWeapon.create(player.x + 50, player.y - 50)
                 thrown = weapon
-                weapon = 'neutral'
-            }
-            if (pressCheck.attack || pressCheck.heavy || pressCheck.dash) {
-                console.log(pressCheck)
+                weapon = 'normal'
             }
             /**            MOVE                **/
-            else if (cursors.left.isDown) {
+            if (pressCheck.attack || pressCheck.heavy || pressCheck.dash) {
+                console.log('no')
+            } else if (cursors.left.isDown) {
                 if (player.flipX == true) {
-                    player.anims.play(Stare, true)
+                    playAnims.stare();
+                    if (!player.body.touching.down) {
+                        playAnims.flying()
+                    }
                 }
                 player.setFlipX(false)
                 if (player.body.touching.down) {
-                    player.anims.play(Move, true);
+                    playAnims.move();
                     player.setVelocityX(-SPEED);
-                } else {
-                    player.anims.play(Fly, true)
                 }
             } else if (cursors.right.isDown) {
                 if (player.flipX == false) {
-                    player.setFlipX(true)
+                    playAnims.stare();
+                    if (!player.body.touching.down) {
+                        playAnims.flying();
+                    }
                 }
+                player.setFlipX(true)
                 if (player.body.touching.down) {
-                    player.anims.play(Move, true);
+                    playAnims.move();
                     player.setVelocityX(SPEED);
-                } else {
-                    player.anims.play(Fly, true)
                 }
             } else if (player.body.touching.left) {
                 player.setFlipX(false)
-                player.anims.play(Move, true)
+                playAnims.move();
             } else if (player.body.touching.right) {
-                player.anims.play(Move, true)
+                playAnims.move();
                 player.setFlipX(true)
             } else if (player.body.touching.down) {
                 player.setVelocityX(0);
-                player.anims.play(Stare, true)
+                playAnims.stare();
 
             }
             /**                         JUMP                    **/
             if (jump !== 0 && cursors.space.isDown && pressCheck.jump == false) {
                 player.setVelocityY(-330);
+                playAnims.dash()
                 jump--
                 pressCheck.jump = true
                 if (cursors.left.isDown) {
@@ -310,7 +290,6 @@
                     player.setVelocityX(SPEED)
                 }
             }
-
             /**                               DASH                             **/
             if (dash !== 0 && cursors.z.isDown && pressCheck.dash == false) {
                 pressCheck.dash = true
@@ -318,9 +297,9 @@
                     pressCall('dash')
                 }, 1000)
                 dash--
+                playAnims.dash();
                 if (player.body.touching.down) {
                     if (cursors.left.isDown) {
-                        player.anims.play(Dash, true)
                         player.setVelocityY(-SPEED)
                         player.setVelocityX(-400)
                         if (cursors.up.isDown) {
@@ -328,7 +307,6 @@
                             player.setVelocityX(-SPEED)
                         }
                     } else if (cursors.right.isDown) {
-                        player.anims.play(Dash, true)
                         player.setVelocityY(-SPEED)
                         player.setVelocityX(400)
                         if (cursors.up.isDown) {
@@ -336,14 +314,10 @@
                             player.setVelocityX(SPEED)
                         }
                     } else if (cursors.up.isDown) {
-                        player.anims.play(Dash, true)
                         player.setVelocityY(-2 * SPEED)
                     } else {
                         dodge = true
-                        player.anims.play(Dodge, true)
-                        window.setTimeout(function() {
-                            pressCall('dodge')
-                        }, 250)
+                        playAnims.dodge();
                         for (i = 0; i < 9000; i++) {
                             player.setVelocityX(0)
                             player.setVelocityY(0)
@@ -365,10 +339,7 @@
                         }
                     } else if (neutral == true) {
                         dodge = true
-                        player.anims.play(Dodge, true)
-                        window.setTimeout(function() {
-                            pressCall('dodge')
-                        }, 250)
+                        playAnims.dodge();
                         for (i = 0; i < 2000; i++) {
                             player.setVelocityY(0)
                             player.setVelocityX(0)
@@ -384,6 +355,10 @@
             if (!cursors.space.isDown) {
                 pressCheck.jump = false
             }
+            if (!cursors.x.isDown) {
+                pressCheck.throw = false
+            }
+
         }
     </script>
 
